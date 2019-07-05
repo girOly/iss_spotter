@@ -1,34 +1,31 @@
 const request = require("request");
+// Fetches user IP using Ipify API
 const fetchMyIP = function(callback) {
-  // use request to fetch IP address from JSON API
   request("https://api.ipify.org?format=json", (error, response, body) => {
-    console.log("error:", error); // Print the error if one occurred
-    console.log("statusCode:", response && response.statusCode); // Print the response status code if a response was receive
-    console.log("body:", body); // Print the IP
-    if (error) {
-      callback(error, null);
-      return;
-    }
-    // if non-200 status, assume server error
+    if (error == true) return callback(error, undefined);
+
     if (response.statusCode !== 200) {
-      const msg = `Status Code ${
-        response.statusCode
-      } when fetching IP. Response: ${body}`;
-      callback(Error(msg), null);
-      return;
-    }
-    const ip = JSON.parse(body).ip;
-    callback(null, ip);
-  });
-};
-// __________________________________
-const fetchCoordsByIp = function(ip, callback) {
-  request(`https://ipvigilante.com/json/${ip}`, (error, response, body) => {
-    if (error) {
-      callback(error, null);
+      callback(
+        Error(`Status Code ${response.statusCode} when fetching IP: ${body}`),
+        undefined
+      );
       return;
     }
 
+    const ip = JSON.parse(body).ip;
+    callback(undefined, ip);
+  });
+};
+
+// ____________________________________________________________________________
+// Fetch Longitude/Latitude using IP Vigilante api
+const fetchCoordsByIP = function(ip, callback) {
+  request(`https://ipvigilante.com/json/${ip}`, (error, response, body) => {
+    if (error) {
+      callback(error, undefined);
+      return;
+    }
+    // 200 Status Code ===  Succes!
     if (response.statusCode !== 200) {
       callback(
         Error(
@@ -36,18 +33,18 @@ const fetchCoordsByIp = function(ip, callback) {
             response.statusCode
           } when fetching Coordinates for IP: ${body}`
         ),
-        null
+        undefined
       );
       return;
     }
 
     const { latitude, longitude } = JSON.parse(body).data;
 
-    callback(null, { latitude, longitude });
+    callback(undefined, { latitude, longitude });
   });
 };
-// __________________________________
-
+// ____________________________________________________________________________
+// Uses Iss-Pass Api to determine ISS Location
 const fetchISSFlyOverTimes = function(coords, callback) {
   const url = `http://api.open-notify.org/iss-pass.json?lat=${
     coords.latitude
@@ -55,7 +52,7 @@ const fetchISSFlyOverTimes = function(coords, callback) {
 
   request(url, (error, response, body) => {
     if (error) {
-      callback(error, null);
+      callback(error, undefined);
       return;
     }
 
@@ -66,41 +63,36 @@ const fetchISSFlyOverTimes = function(coords, callback) {
             response.statusCode
           } when fetching ISS pass times: ${body}`
         ),
-        null
+        undefined
       );
       return;
     }
 
     const passes = JSON.parse(body).response;
-    callback(null, passes);
+    callback(undefined, passes);
   });
 };
-// __________________________________
+// ____________________________________________________________________________
+// Uses previous functions to determine ISS Pass Time for the given IP Location
 const nextISSTimesForMyLocation = function(callback) {
   fetchMyIP((error, ip) => {
     if (error) {
-      return callback(error, null);
+      return callback(error, undefined);
     }
 
     fetchCoordsByIP(ip, (error, loc) => {
       if (error) {
-        return callback(error, null);
+        return callback(error, undefined);
       }
 
       fetchISSFlyOverTimes(loc, (error, nextPasses) => {
         if (error) {
-          return callback(error, null);
+          return callback(error, undefined);
         }
 
-        callback(null, nextPasses);
+        callback(undefined, nextPasses);
       });
     });
   });
 };
-
-module.exports = {
-  fetchMyIP,
-  fetchCoordsByIp,
-  fetchISSFlyOverTimes,
-  nextISSTimesForMyLocation
-};
+module.exports = { nextISSTimesForMyLocation };
