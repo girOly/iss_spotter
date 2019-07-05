@@ -5,7 +5,6 @@ const { nextISSTimesForMyLocation } = require("./iss_promised");
 //   .then(fetchISSFlyOverTimes)
 //   .then(body => console.log(body));
 
-
 nextISSTimesForMyLocation()
   .then(passTimes => {
     printPassTimes(passTimes);
